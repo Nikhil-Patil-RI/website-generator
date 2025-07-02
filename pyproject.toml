@@ -1,0 +1,17 @@
+[project]
+name = "website-generator"
+version = "1.0.0"
+description = "MCP Server for website generation with GitHub repository setup"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "mcp[cli]>=1.10.1",
+    "python-dotenv>=1.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.0.0",
+]
