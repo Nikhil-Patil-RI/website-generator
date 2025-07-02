@@ -36,7 +36,6 @@ async def repo_setup(
     project_name: str,
     description: str = "",
     deploy_to_amplify: bool = False,
-    local_clone_path: str = "",
 ) -> str:
     """
     Setup a new repository for a website project by cloning a template, creating a GitHub repo, and pushing the code.
@@ -46,14 +45,13 @@ async def repo_setup(
     2. Remove the .git folder from the cloned repository
     3. Create a new repository on GitHub with the given project name
     4. Push the cloned repository to the new GitHub repository
-    5. Optionally clone the repository to a local directory for further development
+    5. Clone the repository to the base directory for local development
     6. Optionally deploy to AWS Amplify (if requested)
 
     Args:
         project_name: Name of the project and GitHub repository
         description: Optional description for the GitHub repository
         deploy_to_amplify: Whether to deploy to AWS Amplify (optional, not implemented yet)
-        local_clone_path: Optional local directory path to clone the repository for development (e.g., "./projects")
 
     Returns:
         Status message with repository URL and deployment information
@@ -119,43 +117,35 @@ async def repo_setup(
                 4. Build for production: npm run build
             """
 
-            # Step 4: Optional local clone
-            if local_clone_path and local_clone_path.strip():
-                logging.info("Step 4: Cloning repository to local directory...")
-                try:
-                    # Ensure the local clone path exists
-                    if not os.path.exists(local_clone_path):
-                        os.makedirs(local_clone_path, exist_ok=True)
-                        logging.info(f"Created local directory: {local_clone_path}")
+            # Step 4: Clone repository to base directory
+            logging.info("Step 4: Cloning repository to base directory...")
+            try:
+                # Clone the repository to the base directory (preserving .git folder)
+                base_directory = "."
+                success, output = await clone_existing_repository(
+                    repo_url, base_directory, project_name
+                )
 
-                    # Clone the repository locally (preserving .git folder)
-                    local_project_path = os.path.join(local_clone_path, project_name)
-                    success, output = await clone_existing_repository(
-                        repo_url, local_clone_path, project_name
-                    )
-
-                    if success:
-                        result_message += f"\n✅ Cloned repository to local directory: {local_project_path}"
-                        result_message += f"\n\nLocal Development Setup:"
-                        result_message += (
-                            f"\n1. Navigate to project: cd {local_project_path}"
-                        )
-                        result_message += f"\n2. Install dependencies: npm install"
-                        result_message += f"\n3. Start development server: npm run dev"
-                    else:
-                        result_message += (
-                            f"\n⚠️  Failed to clone repository locally: {output}"
-                        )
-                        result_message += f"\n   You can manually clone it using: git clone {repo_url}"
-
-                except Exception as e:
-                    logging.error(f"Error during local clone: {str(e)}")
+                if success:
+                    result_message += f"\n✅ Cloned repository to local directory: ./{project_name}"
+                    result_message += f"\n\nLocal Development Setup:"
+                    result_message += f"\n1. Navigate to project: cd {project_name}"
+                    result_message += f"\n2. Install dependencies: npm install"
+                    result_message += f"\n3. Start development server: npm run dev"
+                else:
                     result_message += (
-                        f"\n⚠️  Failed to clone repository locally: {str(e)}"
+                        f"\n⚠️  Failed to clone repository locally: {output}"
                     )
-                    result_message += (
-                        f"\n   You can manually clone it using: git clone {repo_url}"
-                    )
+                    result_message += f"\n   You can manually clone it using: git clone {repo_url}"
+
+            except Exception as e:
+                logging.error(f"Error during local clone: {str(e)}")
+                result_message += (
+                    f"\n⚠️  Failed to clone repository locally: {str(e)}"
+                )
+                result_message += (
+                    f"\n   You can manually clone it using: git clone {repo_url}"
+                )
 
             # Step 5: Optional Amplify deployment
             if deploy_to_amplify:

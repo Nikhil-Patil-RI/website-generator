@@ -1,21 +1,41 @@
 # Website Generator MCP Server
 
-A Model Context Protocol (MCP) server for automated website generation using GitHub repository setup and deployment.
+A Model Context Protocol (MCP) server for automated website generation using GitHub repository setup, file creation, and deployment management.
 
 ## Overview
 
-This MCP server provides a `repo_setup` tool that automates the process of creating a new website project by:
+This MCP server provides comprehensive tools for AI agents to manage website projects:
 
+### `repo_setup` Tool
+Automates the process of creating a new website project by:
 1. Cloning a React Vite template repository
 2. Removing the .git folder from the template
 3. Creating a new GitHub repository
 4. Pushing the code to the new repository
-5. Optionally deploying to AWS Amplify (planned feature)
+5. **Cloning the repository to the base directory for local development**
+6. Optionally deploying to AWS Amplify (planned feature)
+
+### `create_file` Tool
+Creates new files with AI-generated content:
+1. Creates files at specified paths with given content
+2. Automatically creates directories if they don't exist
+3. Handles various file types and content
+
+### `commit_changes` Tool
+Manages git operations for project updates:
+1. Checks for changes in the project
+2. Stages all changes automatically
+3. Commits with provided message
+4. Pushes changes to remote repository
 
 ## Features
 
+- **Complete Project Lifecycle**: From setup to deployment
 - **Template-based Setup**: Uses a pre-configured React Vite template
 - **GitHub Integration**: Automatically creates and pushes to GitHub repositories
+- **Local Development**: Clones repositories to base directory for immediate development
+- **File Management**: AI-driven file creation and content generation
+- **Git Operations**: Automated commit and push functionality
 - **Error Handling**: Comprehensive error handling and logging
 - **Test Coverage**: Full test suite with pytest
 - **MCP Compliant**: Follows Model Context Protocol standards
@@ -58,7 +78,7 @@ The server will start and listen for MCP protocol messages via stdio.
 
 #### `repo_setup`
 
-Setup a new repository for a website project.
+Setup a new repository for a website project and clone it locally.
 
 **Parameters:**
 - `project_name` (string, required): Name of the project and GitHub repository
@@ -78,7 +98,53 @@ Setup a new repository for a website project.
 ```
 
 **Returns:**
-A status message with repository URL and setup information.
+A status message with repository URL, local clone path, and setup information.
+
+#### `create_file`
+
+Create a new file in the project with AI-generated content.
+
+**Parameters:**
+- `file_name` (string, required): Name of the file to create (e.g., "component.tsx", "styles.css")
+- `file_path` (string, required): Directory path where the file should be created (e.g., "./src", "./public")
+- `content` (string, required): Content to write to the file
+
+**Example:**
+```json
+{
+  "tool": "create_file",
+  "arguments": {
+    "file_name": "HelloWorld.tsx",
+    "file_path": "./my-awesome-website/src/components",
+    "content": "import React from 'react';\n\nconst HelloWorld = () => {\n  return <h1>Hello World!</h1>;\n};\n\nexport default HelloWorld;"
+  }
+}
+```
+
+**Returns:**
+A status message indicating success or failure of file creation.
+
+#### `commit_changes`
+
+Commit and push changes made to the project.
+
+**Parameters:**
+- `commit_message` (string, required): Message to use for the commit
+- `project_path` (string, optional): Path to the project directory (defaults to current directory)
+
+**Example:**
+```json
+{
+  "tool": "commit_changes",
+  "arguments": {
+    "commit_message": "Add new HelloWorld component",
+    "project_path": "./my-awesome-website"
+  }
+}
+```
+
+**Returns:**
+A status message indicating success or failure of the commit and push operation.
 
 ## Configuration
 
@@ -121,30 +187,56 @@ The test suite covers:
 
 The server follows the FastMCP pattern and includes:
 
-- **`main.py`**: Main MCP server implementation
-- **`test_main.py`**: Comprehensive test suite
+- **`main.py`**: Main MCP server implementation with all tools
+- **`utils/github_api.py`**: GitHub API integration utilities
+- **`utils/git_operations.py`**: Git operations and file management utilities
+- **`tests/test_main.py`**: Comprehensive test suite
 - **`pyproject.toml`**: Project configuration and dependencies
 
 ### Key Components
 
-- **`_make_github_request()`**: Handles GitHub API communication
-- **`_run_command()`**: Executes shell commands safely
-- **`_clone_template_repository()`**: Clones and prepares template
-- **`_create_github_repository()`**: Creates new GitHub repository
-- **`_push_to_github()`**: Initializes git and pushes code
-- **`repo_setup()`**: Main tool that orchestrates the entire process
+#### Main Tools
+- **`repo_setup()`**: Orchestrates repository creation and local cloning
+- **`create_file()`**: Handles AI-driven file creation
+- **`commit_changes()`**: Manages git commit and push operations
+
+#### Utility Functions
+- **`make_github_request()`**: Handles GitHub API communication
+- **`create_github_repository()`**: Creates new GitHub repositories
+- **`run_command()`**: Executes shell commands safely
+- **`clone_template_repository()`**: Clones and prepares templates
+- **`clone_existing_repository()`**: Clones repositories preserving git history
+- **`push_to_github()`**: Initializes git and pushes code
+- **`create_file_in_project()`**: Creates files with directory handling
+- **`commit_and_push_changes()`**: Handles git operations for commits
 
 ## Implementation Details
 
-### Step-by-Step Process
+### Complete Workflow Process
 
+#### Repository Setup (`repo_setup`)
 1. **Validation**: Check for GitHub token and project name
 2. **Clone Template**: Clone the React Vite template to a temporary directory
 3. **Clean Template**: Remove .git folder from cloned template
 4. **Create Repository**: Create new GitHub repository via API
 5. **Initialize Git**: Set up git repository in project directory
 6. **Push Code**: Push the code to the new GitHub repository
-7. **Return Results**: Provide success message with repository details
+7. **Local Clone**: Clone the repository to the base directory for development
+8. **Return Results**: Provide success message with repository details and local path
+
+#### File Creation (`create_file`)
+1. **Validation**: Check file name and path parameters
+2. **Directory Creation**: Create directories if they don't exist
+3. **File Writing**: Write content to the specified file
+4. **Confirmation**: Return success status and file details
+
+#### Change Management (`commit_changes`)
+1. **Repository Check**: Verify the directory is a git repository
+2. **Change Detection**: Check for uncommitted changes
+3. **Staging**: Stage all changes automatically
+4. **Commit**: Commit changes with provided message
+5. **Push**: Push changes to remote repository
+6. **Confirmation**: Return operation status
 
 ### Error Handling
 
@@ -153,11 +245,38 @@ The server follows the FastMCP pattern and includes:
 - Graceful failure handling
 - Timeout protection for long-running operations
 
+### Local Development Integration
+
+The `repo_setup` tool automatically clones repositories to the base directory, enabling immediate local development:
+
+- **Base Directory Cloning**: Projects are cloned directly to the current working directory
+- **Git Integration**: Full git history is preserved for version control
+- **Immediate Development**: No additional setup required after repository creation
+- **Gitignore Management**: Cloned repositories are automatically excluded from version control
+
+### Gitignore Configuration
+
+The `.gitignore` file is configured to exclude common project patterns while preserving the core MCP server files:
+
+```gitignore
+# Cloned repositories (created by repo_setup tool)
+*-website*/
+*-app*/
+*-project*/
+test-*/
+```
+
+This ensures that:
+- Cloned project directories are not committed to the MCP server repository
+- Core utilities (`utils/`, `tests/`) remain tracked
+- Development workflow is clean and organized
+
 ### Security
 
 - GitHub token is checked at runtime, not stored
 - Temporary directories are automatically cleaned up
 - No sensitive information is logged
+- Local repositories are excluded from version control
 
 ## Future Enhancements
 

@@ -10,3 +10,12 @@ wheels/
 .venv
 .env
 TRD.md
+
+# Cloned repositories (created by repo_setup tool)
+# These are local development copies of created repositories
+# Exclude any directory that looks like a project name but keep our core directories
+*-website*/
+*-app*/
+*-project*/
+test-*/
+# Add more patterns as needed for common project naming conventions
