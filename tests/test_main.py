@@ -9,9 +9,9 @@ from unittest.mock import patch, MagicMock, AsyncMock
 # Add parent directory to path to import main module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from main import mcp, repo_setup
+from main import mcp, repo_setup, create_file, commit_changes
 from utils.github_api import make_github_request, create_github_repository
-from utils.git_operations import run_command, clone_template_repository, push_to_github
+from utils.git_operations import run_command, clone_template_repository, push_to_github, create_file_in_project, commit_and_push_changes
 
 class TestWebsiteGeneratorMCP:
     """Test suite for the website generator MCP server."""
@@ -272,6 +272,161 @@ class TestWebsiteGeneratorMCP:
                 
                 assert "Repository setup failed due to unexpected error" in result
                 assert "Unexpected error" in result
+    
+    @pytest.mark.asyncio
+    async def test_create_file_success(self):
+        """Test successful file creation."""
+        with patch("main.create_file_in_project") as mock_create:
+            mock_create.return_value = (True, "File created successfully")
+            
+            result = await create_file("test.txt", "./src", "Hello World")
+            
+            assert "File created successfully!" in result
+            assert "test.txt" in result
+            assert "./src" in result
+            mock_create.assert_called_once_with("./src", "test.txt", "Hello World")
+    
+    @pytest.mark.asyncio
+    async def test_create_file_empty_filename(self):
+        """Test create_file fails with empty filename."""
+        result = await create_file("", "./src", "content")
+        assert "File name is required and cannot be empty" in result
+        
+        result = await create_file("   ", "./src", "content")
+        assert "File name is required and cannot be empty" in result
+    
+    @pytest.mark.asyncio
+    async def test_create_file_empty_filepath(self):
+        """Test create_file fails with empty filepath."""
+        result = await create_file("test.txt", "", "content")
+        assert "File path is required and cannot be empty" in result
+        
+        result = await create_file("test.txt", "   ", "content")
+        assert "File path is required and cannot be empty" in result
+    
+    @pytest.mark.asyncio
+    async def test_create_file_with_empty_content(self):
+        """Test create_file works with empty content."""
+        with patch("main.create_file_in_project") as mock_create:
+            mock_create.return_value = (True, "File created successfully")
+            
+            result = await create_file("test.txt", "./src", "")
+            
+            assert "File created successfully!" in result
+            mock_create.assert_called_once_with("./src", "test.txt", "")
+    
+    @pytest.mark.asyncio
+    async def test_create_file_failure(self):
+        """Test create_file handles creation failure."""
+        with patch("main.create_file_in_project") as mock_create:
+            mock_create.return_value = (False, "Permission denied")
+            
+            result = await create_file("test.txt", "./src", "content")
+            
+            assert "Failed to create file: Permission denied" in result
+    
+    @pytest.mark.asyncio
+    async def test_create_file_unexpected_error(self):
+        """Test create_file handles unexpected errors."""
+        with patch("main.create_file_in_project") as mock_create:
+            mock_create.side_effect = Exception("Unexpected error")
+            
+            result = await create_file("test.txt", "./src", "content")
+            
+            assert "File creation failed due to unexpected error" in result
+            assert "Unexpected error" in result
+    
+    @pytest.mark.asyncio
+    async def test_commit_changes_success(self):
+        """Test successful commit and push."""
+        with patch("main.commit_and_push_changes") as mock_commit:
+            mock_commit.return_value = (True, "Successfully committed and pushed changes")
+            
+            result = await commit_changes("Add new feature", "./project")
+            
+            assert "Changes committed and pushed successfully!" in result
+            assert "Add new feature" in result
+            assert "./project" in result
+            mock_commit.assert_called_once_with("./project", "Add new feature")
+    
+    @pytest.mark.asyncio
+    async def test_commit_changes_no_changes(self):
+        """Test commit when there are no changes."""
+        with patch("main.commit_and_push_changes") as mock_commit:
+            mock_commit.return_value = (True, "No changes to commit.")
+            
+            result = await commit_changes("Add new feature")
+            
+            assert "No changes detected in the project" in result
+            assert "The project is already up to date" in result
+    
+    @pytest.mark.asyncio
+    async def test_commit_changes_empty_message(self):
+        """Test commit_changes fails with empty commit message."""
+        result = await commit_changes("")
+        assert "Commit message is required and cannot be empty" in result
+        
+        result = await commit_changes("   ")
+        assert "Commit message is required and cannot be empty" in result
+    
+    @pytest.mark.asyncio
+    async def test_commit_changes_failure(self):
+        """Test commit_changes handles commit failure."""
+        with patch("main.commit_and_push_changes") as mock_commit:
+            mock_commit.return_value = (False, "Git push failed")
+            
+            result = await commit_changes("Add new feature")
+            
+            assert "Failed to commit changes: Git push failed" in result
+    
+    @pytest.mark.asyncio
+    async def test_commit_changes_unexpected_error(self):
+        """Test commit_changes handles unexpected errors."""
+        with patch("main.commit_and_push_changes") as mock_commit:
+            mock_commit.side_effect = Exception("Unexpected error")
+            
+            result = await commit_changes("Add new feature")
+            
+            assert "Commit operation failed due to unexpected error" in result
+            assert "Unexpected error" in result
+    
+    @pytest.mark.asyncio
+    async def test_create_file_in_project_success(self):
+        """Test successful file creation in project."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            success, message = await create_file_in_project(temp_dir, "test.txt", "Hello World")
+            
+            assert success is True
+            assert "created successfully" in message
+            
+            # Verify file was actually created
+            file_path = os.path.join(temp_dir, "test.txt")
+            assert os.path.exists(file_path)
+            
+            with open(file_path, 'r') as f:
+                content = f.read()
+            assert content == "Hello World"
+    
+    @pytest.mark.asyncio
+    async def test_create_file_in_project_creates_directory(self):
+        """Test that create_file_in_project creates directories if they don't exist."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            nested_path = os.path.join(temp_dir, "src", "components")
+            
+            success, message = await create_file_in_project(nested_path, "Component.js", "export default Component;")
+            
+            assert success is True
+            assert os.path.exists(nested_path)
+            assert os.path.exists(os.path.join(nested_path, "Component.js"))
+    
+    @pytest.mark.asyncio
+    async def test_commit_and_push_changes_no_git_repo(self):
+        """Test commit_and_push_changes fails when not in a git repository."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            success, message = await commit_and_push_changes(temp_dir, "Test commit")
+            
+            assert success is False
+            assert "Not a git repository" in message
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

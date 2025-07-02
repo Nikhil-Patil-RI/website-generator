@@ -140,3 +140,87 @@ async def push_to_github(project_path: str, repo_url: str, project_name: str) ->
         return False, f"Failed to push to GitHub: {output}"
     
     return True, "Successfully pushed to GitHub"
+
+
+async def create_file_in_project(file_path: str, file_name: str, content: str) -> tuple[bool, str]:
+    """
+    Create a new file with the given content at the specified path.
+    
+    Args:
+        file_path: Directory path where the file should be created
+        file_name: Name of the file to create
+        content: Content to write to the file
+        
+    Returns:
+        Tuple of (success, message)
+    """
+    try:
+        # Ensure the directory exists
+        if not os.path.exists(file_path):
+            os.makedirs(file_path, exist_ok=True)
+            logging.info(f"Created directory: {file_path}")
+        
+        # Create the full file path
+        full_file_path = os.path.join(file_path, file_name)
+        
+        # Write content to the file
+        with open(full_file_path, 'w', encoding='utf-8') as file:
+            file.write(content)
+        
+        logging.info(f"Successfully created file: {full_file_path}")
+        return True, f"File '{file_name}' created successfully at '{file_path}'"
+        
+    except Exception as e:
+        error_msg = f"Failed to create file '{file_name}' at '{file_path}': {str(e)}"
+        logging.error(error_msg)
+        return False, error_msg
+
+
+async def commit_and_push_changes(project_path: str, commit_message: str) -> tuple[bool, str]:
+    """
+    Check for changes, commit them, and push to the remote repository.
+    
+    Args:
+        project_path: Local path to the project repository
+        commit_message: Message for the commit
+        
+    Returns:
+        Tuple of (success, message)
+    """
+    try:
+        # Check if we're in a git repository
+        if not os.path.exists(os.path.join(project_path, ".git")):
+            return False, "Not a git repository. Please ensure the project is initialized with git."
+        
+        # Check for changes
+        success, output = run_command(["git", "status", "--porcelain"], cwd=project_path)
+        if not success:
+            return False, f"Failed to check git status: {output}"
+        
+        # If no changes, return early
+        if not output.strip():
+            return True, "No changes to commit."
+        
+        # Stage all changes
+        success, output = run_command(["git", "add", "."], cwd=project_path)
+        if not success:
+            return False, f"Failed to stage changes: {output}"
+        
+        # Commit changes
+        success, output = run_command([
+            "git", "commit", "-m", commit_message
+        ], cwd=project_path)
+        if not success:
+            return False, f"Failed to commit changes: {output}"
+        
+        # Push changes to remote
+        success, output = run_command(["git", "push"], cwd=project_path)
+        if not success:
+            return False, f"Failed to push changes: {output}"
+        
+        return True, f"Successfully committed and pushed changes with message: '{commit_message}'"
+        
+    except Exception as e:
+        error_msg = f"Failed to commit and push changes: {str(e)}"
+        logging.error(error_msg)
+        return False, error_msg
