@@ -1,6 +1,5 @@
 import os
 import logging
-import tempfile
 from mcp.server.fastmcp import FastMCP
 from dotenv import load_dotenv
 
@@ -188,35 +187,31 @@ The file is ready for use in your project.
 
 
 @mcp.tool()
-async def push_changes(commit_message: str, project_name: str) -> str:
+async def push_changes(project_name: str) -> str:
     """
     Commit the changes made to the project and push them to the remote repository.
 
     This tool performs the following steps:
-    1. Get the commit message and project name from the AI Agent
+    1. Get the project name from the AI Agent
     2. Locate the project directory in the base directory
     3. Check if there are any changes made to the project
     4. If there are no changes, it will return
     5. If there are changes, it will stage the changes
-    6. Commit the changes with the commit message
+    6. Commit the changes with an auto-generated commit message
     7. Push the changes to the remote repository
 
     Args:
-        commit_message: Message to use for the commit
         project_name: Name of the project (same as used in repo_setup)
 
     Returns:
         Status message indicating success or failure
     """
-    if not commit_message or not commit_message.strip():
-        return "Commit message is required and cannot be empty."
-
     if not project_name or not project_name.strip():
         return "Project name is required and cannot be empty."
 
-    # Sanitize inputs
-    commit_message = commit_message.strip()
+    # Sanitize inputs and generate commit message
     project_name = project_name.strip().replace(" ", "-").lower()
+    commit_message = generate_commit_message()
 
     # Construct project path
     project_path = f"./{project_name}"
@@ -232,7 +227,7 @@ async def push_changes(commit_message: str, project_name: str) -> str:
 
     try:
         logging.info(
-            f"Pushing changes for project '{project_name}' with message: {commit_message}"
+            f"Pushing changes for project '{project_name}' with auto-generated message: {commit_message}"
         )
 
         # Commit and push changes
@@ -255,14 +250,14 @@ Changes committed and pushed successfully!
 
 Project Name: {project_name}
 Project Path: {project_path}
-Commit Message: {commit_message}
+Auto-Generated Commit Message: {commit_message}
 
 Steps Completed:
 ✅ Located project directory: {project_path}
 ✅ Verified git repository structure
 ✅ Checked for changes in the project
 ✅ Staged all changes
-✅ Committed changes with the provided message
+✅ Committed changes with auto-generated message
 ✅ Pushed changes to the remote repository
 
 Your changes are now live in the remote repository!
@@ -277,7 +272,7 @@ Your changes are now live in the remote repository!
 
 
 @mcp.tool()
-async def read_file_tool(file_path: str) -> str:
+async def read_file(file_path: str) -> str:
     """
     Read the contents of a file.
 
@@ -318,7 +313,7 @@ Lines: {len(content.splitlines())}
 
 
 @mcp.tool()
-async def list_files_tool(directory_path: str) -> str:
+async def list_files(directory_path: str) -> str:
     """
     List all files and directories in the specified directory.
 
@@ -369,7 +364,7 @@ Total Items: {len(items)}
 
 
 @mcp.tool()
-async def update_file_tool(file_path: str, new_content: str) -> str:
+async def update_file(file_path: str, new_content: str) -> str:
     """
     Update the contents of an existing file.
 

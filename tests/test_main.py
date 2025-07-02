@@ -9,7 +9,7 @@ from unittest.mock import patch, MagicMock, AsyncMock
 # Add parent directory to path to import main module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from main import mcp, repo_setup, create_file, push_changes
+from main import mcp, repo_setup, create_file, push_changes, generate_commit_message
 from utils.github_api import make_github_request, create_github_repository
 from utils.git_operations import run_command, push_to_github, create_file_in_project, commit_and_push_changes
 
@@ -312,62 +312,83 @@ class TestWebsiteGeneratorMCP:
         """Test successful commit and push."""
         with patch("os.path.exists") as mock_exists:
             with patch("main.commit_and_push_changes") as mock_commit:
-                mock_exists.return_value = True
-                mock_commit.return_value = (True, "Successfully committed and pushed changes")
-                
-                result = await push_changes("Add new feature", "project")
-                
-                assert "Changes committed and pushed successfully!" in result
-                assert "Add new feature" in result
-                assert "./project" in result
-                mock_commit.assert_called_once_with("./project", "Add new feature")
+                with patch("main.generate_commit_message") as mock_generate:
+                    mock_exists.return_value = True
+                    mock_commit.return_value = (True, "Successfully committed and pushed changes")
+                    mock_generate.return_value = "Auto-commit: Update project files - 2025-01-02 23:05:00"
+                    
+                    result = await push_changes("project")
+                    
+                    assert "Changes committed and pushed successfully!" in result
+                    assert "Auto-Generated Commit Message:" in result
+                    assert "./project" in result
+                    mock_commit.assert_called_once_with("./project", "Auto-commit: Update project files - 2025-01-02 23:05:00")
     
     @pytest.mark.asyncio
     async def test_push_changes_no_changes(self):
         """Test push when there are no changes."""
         with patch("os.path.exists") as mock_exists:
             with patch("main.commit_and_push_changes") as mock_commit:
-                mock_exists.return_value = True
-                mock_commit.return_value = (True, "No changes to commit.")
-                
-                result = await push_changes("Add new feature", "project")
-                
-                assert "No changes detected in the project" in result
-                assert "The project is already up to date" in result
+                with patch("main.generate_commit_message") as mock_generate:
+                    mock_exists.return_value = True
+                    mock_commit.return_value = (True, "No changes to commit.")
+                    mock_generate.return_value = "Auto-commit: Update project files - 2025-01-02 23:05:00"
+                    
+                    result = await push_changes("project")
+                    
+                    assert "No changes detected in the project" in result
+                    assert "The project is already up to date" in result
     
     @pytest.mark.asyncio
-    async def test_push_changes_empty_message(self):
-        """Test push_changes fails with empty commit message."""
-        result = await push_changes("", "project")
-        assert "Commit message is required and cannot be empty" in result
+    async def test_push_changes_empty_project_name(self):
+        """Test push_changes fails with empty project name."""
+        result = await push_changes("")
+        assert "Project name is required and cannot be empty" in result
         
-        result = await push_changes("   ", "project")
-        assert "Commit message is required and cannot be empty" in result
+        result = await push_changes("   ")
+        assert "Project name is required and cannot be empty" in result
     
     @pytest.mark.asyncio
     async def test_push_changes_failure(self):
         """Test push_changes handles commit failure."""
         with patch("os.path.exists") as mock_exists:
             with patch("main.commit_and_push_changes") as mock_commit:
-                mock_exists.return_value = True
-                mock_commit.return_value = (False, "Git push failed")
-                
-                result = await push_changes("Add new feature", "project")
-                
-                assert "Failed to push changes: Git push failed" in result
+                with patch("main.generate_commit_message") as mock_generate:
+                    mock_exists.return_value = True
+                    mock_commit.return_value = (False, "Git push failed")
+                    mock_generate.return_value = "Auto-commit: Update project files - 2025-01-02 23:05:00"
+                    
+                    result = await push_changes("project")
+                    
+                    assert "Failed to push changes: Git push failed" in result
     
     @pytest.mark.asyncio
     async def test_push_changes_unexpected_error(self):
         """Test push_changes handles unexpected errors."""
         with patch("os.path.exists") as mock_exists:
             with patch("main.commit_and_push_changes") as mock_commit:
-                mock_exists.return_value = True
-                mock_commit.side_effect = Exception("Unexpected error")
-                
-                result = await push_changes("Add new feature", "project")
-                
-                assert "Push operation failed due to unexpected error" in result
-                assert "Unexpected error" in result
+                with patch("main.generate_commit_message") as mock_generate:
+                    mock_exists.return_value = True
+                    mock_commit.side_effect = Exception("Unexpected error")
+                    mock_generate.return_value = "Auto-commit: Update project files - 2025-01-02 23:05:00"
+                    
+                    result = await push_changes("project")
+                    
+                    assert "Push operation failed due to unexpected error" in result
+                    assert "Unexpected error" in result
+    
+    def test_generate_commit_message(self):
+        """Test that generate_commit_message creates a proper commit message."""
+        message = generate_commit_message()
+        
+        assert "Auto-commit: Update project files -" in message
+        assert len(message) > 30  # Should be a reasonable length
+        
+        # Test that two calls generate different messages (due to timestamp)
+        import time
+        time.sleep(1)  # Wait 1 second
+        message2 = generate_commit_message()
+        assert message != message2  # Should be different due to timestamp
     
     @pytest.mark.asyncio
     async def test_create_file_in_project_success(self):

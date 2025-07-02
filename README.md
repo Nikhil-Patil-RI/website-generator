@@ -24,25 +24,25 @@ Creates new files with AI-generated content:
 Manages git operations for project updates:
 1. Checks for changes in the project
 2. Stages all changes automatically
-3. Commits with provided message
+3. Commits with auto-generated timestamp message
 4. Pushes changes to remote repository
 
 ### File Handling Tools
 Additional tools for file system operations:
 
-#### `read_file_tool`
+#### `read_file`
 Reads the contents of any file in the project or system:
 1. Reads file contents with proper encoding
 2. Provides file statistics (lines, characters)
 3. Handles various file types and formats
 
-#### `list_files_tool`
+#### `list_files`
 Lists all files and directories in a specified directory:
 1. Shows files and directories with clear prefixes
 2. Provides organized directory listings
 3. Handles empty directories gracefully
 
-#### `update_file_tool`
+#### `update_file`
 Updates the contents of existing files:
 1. Overwrites entire file content with new content
 2. Validates file existence before updating
@@ -146,10 +146,9 @@ A status message indicating success or failure of file creation.
 
 #### `push_changes`
 
-Commit and push changes made to the project.
+Commit and push changes made to the project with auto-generated commit messages.
 
 **Parameters:**
-- `commit_message` (string, required): Message to use for the commit
 - `project_name` (string, required): Name of the project (same as used in repo_setup)
 
 **Example:**
@@ -157,16 +156,20 @@ Commit and push changes made to the project.
 {
   "tool": "push_changes",
   "arguments": {
-    "commit_message": "Add new HelloWorld component",
     "project_name": "my-awesome-website"
   }
 }
 ```
 
+**Features:**
+- Automatically generates commit messages with timestamps
+- No need to provide commit messages manually
+- Simplifies the workflow for AI agents
+
 **Returns:**
 A status message indicating success or failure of the commit and push operation.
 
-#### `read_file_tool`
+#### `read_file`
 
 Read the contents of any file in the project or system.
 
@@ -176,7 +179,7 @@ Read the contents of any file in the project or system.
 **Example:**
 ```json
 {
-  "tool": "read_file_tool",
+  "tool": "read_file",
   "arguments": {
     "file_path": "./my-awesome-website/src/App.tsx"
   }
@@ -186,7 +189,7 @@ Read the contents of any file in the project or system.
 **Returns:**
 File contents with metadata including character count and line count.
 
-#### `list_files_tool`
+#### `list_files`
 
 List all files and directories in the specified directory.
 
@@ -196,7 +199,7 @@ List all files and directories in the specified directory.
 **Example:**
 ```json
 {
-  "tool": "list_files_tool",
+  "tool": "list_files",
   "arguments": {
     "directory_path": "./my-awesome-website/src"
   }
@@ -206,7 +209,7 @@ List all files and directories in the specified directory.
 **Returns:**
 Directory listing with files marked as [FILE] and directories as [DIR].
 
-#### `update_file_tool`
+#### `update_file`
 
 Update the contents of an existing file.
 
@@ -217,7 +220,7 @@ Update the contents of an existing file.
 **Example:**
 ```json
 {
-  "tool": "update_file_tool",
+  "tool": "update_file",
   "arguments": {
     "file_path": "./my-awesome-website/src/App.tsx",
     "new_content": "import React from 'react';\nimport HelloWorld from './components/HelloWorld';\n\nfunction App() {\n  return <HelloWorld />;\n}\n\nexport default App;"
@@ -289,9 +292,9 @@ The server follows the FastMCP pattern and includes:
 - **`repo_setup()`**: Orchestrates repository creation with optimized workflow
 - **`create_file()`**: Handles AI-driven file creation
 - **`push_changes()`**: Manages git commit and push operations
-- **`read_file_tool()`**: Reads file contents with metadata
-- **`list_files_tool()`**: Lists directory contents with clear formatting
-- **`update_file_tool()`**: Updates existing file contents
+- **`read_file()`**: Reads file contents with metadata
+- **`list_files()`**: Lists directory contents with clear formatting
+- **`update_file()`**: Updates existing file contents
 
 #### Utility Functions
 - **`make_github_request()`**: Handles GitHub API communication
@@ -335,11 +338,12 @@ The server follows the FastMCP pattern and includes:
 1. **Project Location**: Construct project path from project name (`./{project_name}`)
 2. **Directory Validation**: Verify the project directory exists
 3. **Repository Check**: Verify the directory is a git repository
-4. **Change Detection**: Check for uncommitted changes
-5. **Staging**: Stage all changes automatically
-6. **Commit**: Commit changes with provided message
-7. **Push**: Push changes to remote repository
-8. **Confirmation**: Return operation status
+4. **Message Generation**: Auto-generate commit message with timestamp
+5. **Change Detection**: Check for uncommitted changes
+6. **Staging**: Stage all changes automatically
+7. **Commit**: Commit changes with auto-generated message
+8. **Push**: Push changes to remote repository
+9. **Confirmation**: Return operation status
 
 ### Error Handling
 
