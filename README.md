@@ -130,7 +130,7 @@ Commit and push changes made to the project.
 
 **Parameters:**
 - `commit_message` (string, required): Message to use for the commit
-- `project_path` (string, optional): Path to the project directory (defaults to current directory)
+- `project_name` (string, required): Name of the project (same as used in repo_setup)
 
 **Example:**
 ```json
@@ -138,7 +138,7 @@ Commit and push changes made to the project.
   "tool": "commit_changes",
   "arguments": {
     "commit_message": "Add new HelloWorld component",
-    "project_path": "./my-awesome-website"
+    "project_name": "my-awesome-website"
   }
 }
 ```
@@ -231,12 +231,14 @@ The server follows the FastMCP pattern and includes:
 4. **Confirmation**: Return success status and file details
 
 #### Change Management (`commit_changes`)
-1. **Repository Check**: Verify the directory is a git repository
-2. **Change Detection**: Check for uncommitted changes
-3. **Staging**: Stage all changes automatically
-4. **Commit**: Commit changes with provided message
-5. **Push**: Push changes to remote repository
-6. **Confirmation**: Return operation status
+1. **Project Location**: Construct project path from project name (`./{project_name}`)
+2. **Directory Validation**: Verify the project directory exists
+3. **Repository Check**: Verify the directory is a git repository
+4. **Change Detection**: Check for uncommitted changes
+5. **Staging**: Stage all changes automatically
+6. **Commit**: Commit changes with provided message
+7. **Push**: Push changes to remote repository
+8. **Confirmation**: Return operation status
 
 ### Error Handling
 

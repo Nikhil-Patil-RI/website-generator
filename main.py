@@ -127,7 +127,9 @@ async def repo_setup(
                 )
 
                 if success:
-                    result_message += f"\n✅ Cloned repository to local directory: ./{project_name}"
+                    result_message += (
+                        f"\n✅ Cloned repository to local directory: ./{project_name}"
+                    )
                     result_message += f"\n\nLocal Development Setup:"
                     result_message += f"\n1. Navigate to project: cd {project_name}"
                     result_message += f"\n2. Install dependencies: npm install"
@@ -136,13 +138,13 @@ async def repo_setup(
                     result_message += (
                         f"\n⚠️  Failed to clone repository locally: {output}"
                     )
-                    result_message += f"\n   You can manually clone it using: git clone {repo_url}"
+                    result_message += (
+                        f"\n   You can manually clone it using: git clone {repo_url}"
+                    )
 
             except Exception as e:
                 logging.error(f"Error during local clone: {str(e)}")
-                result_message += (
-                    f"\n⚠️  Failed to clone repository locally: {str(e)}"
-                )
+                result_message += f"\n⚠️  Failed to clone repository locally: {str(e)}"
                 result_message += (
                     f"\n   You can manually clone it using: git clone {repo_url}"
                 )
@@ -213,21 +215,22 @@ The file is ready for use in your project.
 
 
 @mcp.tool()
-async def commit_changes(commit_message: str, project_path: str = ".") -> str:
+async def commit_changes(commit_message: str, project_name: str) -> str:
     """
     Commit the changes made to the project and push them to the remote repository.
 
     This tool performs the following steps:
-    1. Get the commit message from the AI Agent
-    2. Check if there are any changes made to the project
-    3. If there are no changes, it will return
-    4. If there are changes, it will stage the changes
-    5. Commit the changes with the commit message
-    6. Push the changes to the remote repository
+    1. Get the commit message and project name from the AI Agent
+    2. Locate the project directory in the base directory
+    3. Check if there are any changes made to the project
+    4. If there are no changes, it will return
+    5. If there are changes, it will stage the changes
+    6. Commit the changes with the commit message
+    7. Push the changes to the remote repository
 
     Args:
         commit_message: Message to use for the commit
-        project_path: Path to the project directory (defaults to current directory)
+        project_name: Name of the project (same as used in repo_setup)
 
     Returns:
         Status message indicating success or failure
@@ -235,11 +238,29 @@ async def commit_changes(commit_message: str, project_path: str = ".") -> str:
     if not commit_message or not commit_message.strip():
         return "Commit message is required and cannot be empty."
 
-    # Sanitize commit message
+    if not project_name or not project_name.strip():
+        return "Project name is required and cannot be empty."
+
+    # Sanitize inputs
     commit_message = commit_message.strip()
+    project_name = project_name.strip().replace(" ", "-").lower()
+
+    # Construct project path
+    project_path = f"./{project_name}"
+
+    # Check if project directory exists
+    if not os.path.exists(project_path):
+        return f"Project directory '{project_path}' not found. Make sure the project was created using repo_setup first."
+
+    # Check if it's a git repository
+    git_dir = os.path.join(project_path, ".git")
+    if not os.path.exists(git_dir):
+        return f"Project directory '{project_path}' is not a git repository. Make sure the project was created using repo_setup first."
 
     try:
-        logging.info(f"Committing changes with message: {commit_message}")
+        logging.info(
+            f"Committing changes for project '{project_name}' with message: {commit_message}"
+        )
 
         # Commit and push changes
         success, message = await commit_and_push_changes(project_path, commit_message)
@@ -249,6 +270,7 @@ async def commit_changes(commit_message: str, project_path: str = ".") -> str:
                 result_message = f"""
 No changes detected in the project.
 
+Project Name: {project_name}
 Project Path: {project_path}
 Status: No changes to commit
 
@@ -258,10 +280,13 @@ Status: No changes to commit
                 result_message = f"""
 Changes committed and pushed successfully!
 
+Project Name: {project_name}
 Project Path: {project_path}
 Commit Message: {commit_message}
 
 Steps Completed:
+✅ Located project directory: {project_path}
+✅ Verified git repository structure
 ✅ Checked for changes in the project
 ✅ Staged all changes
 ✅ Committed changes with the provided message
