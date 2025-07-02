@@ -1,12 +1,17 @@
 import pytest
 import asyncio
 import os
+import sys
 import tempfile
 import shutil
 from unittest.mock import patch, MagicMock, AsyncMock
+
+# Add parent directory to path to import main module
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from main import mcp, repo_setup
-from github_api import make_github_request, create_github_repository
-from git_operations import run_command, clone_template_repository, push_to_github
+from utils.github_api import make_github_request, create_github_repository
+from utils.git_operations import run_command, clone_template_repository, push_to_github
 
 class TestWebsiteGeneratorMCP:
     """Test suite for the website generator MCP server."""
@@ -55,7 +60,7 @@ class TestWebsiteGeneratorMCP:
     async def test_clone_template_repository_success(self):
         """Test successful template repository cloning."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch("git_operations.run_command") as mock_run:
+            with patch("utils.git_operations.run_command") as mock_run:
                 mock_run.side_effect = [
                     (True, "Cloning into 'test-project'..."),  # git clone
                 ]
@@ -72,7 +77,7 @@ class TestWebsiteGeneratorMCP:
     async def test_clone_template_repository_failure(self):
         """Test failed template repository cloning."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch("git_operations.run_command") as mock_run:
+            with patch("utils.git_operations.run_command") as mock_run:
                 mock_run.return_value = (False, "Repository not found")
                 
                 success, message = await clone_template_repository("test-project", temp_dir, "https://github.com/test/template.git")
@@ -88,7 +93,7 @@ class TestWebsiteGeneratorMCP:
             "clone_url": "https://github.com/user/test-project.git"
         }
         
-        with patch("github_api.make_github_request", return_value=mock_response):
+        with patch("utils.github_api.make_github_request", return_value=mock_response):
             success, repo_url = await create_github_repository("test-project", "Test description")
             
             assert success is True
@@ -97,7 +102,7 @@ class TestWebsiteGeneratorMCP:
     @pytest.mark.asyncio
     async def test_create_github_repository_failure(self):
         """Test failed GitHub repository creation."""
-        with patch("github_api.make_github_request", return_value=None):
+        with patch("utils.github_api.make_github_request", return_value=None):
             success, message = await create_github_repository("test-project")
             
             assert success is False
@@ -111,7 +116,7 @@ class TestWebsiteGeneratorMCP:
             os.makedirs(project_path)
             
             with patch.dict(os.environ, {"GITHUB_TOKEN": "test_token"}):
-                with patch("git_operations.run_command") as mock_run:
+                with patch("utils.git_operations.run_command") as mock_run:
                     mock_run.return_value = (True, "Success")
                     
                     success, message = await push_to_github(
@@ -131,7 +136,7 @@ class TestWebsiteGeneratorMCP:
             os.makedirs(project_path)
             
             with patch.dict(os.environ, {"GITHUB_TOKEN": "test_token"}):
-                with patch("git_operations.run_command") as mock_run:
+                with patch("utils.git_operations.run_command") as mock_run:
                     mock_run.return_value = (False, "Git command failed")
                     
                     success, message = await push_to_github(

@@ -5,8 +5,8 @@ from mcp.server.fastmcp import FastMCP
 from dotenv import load_dotenv
 
 # Import helper modules
-from github_api import create_github_repository
-from git_operations import clone_template_repository, push_to_github
+from utils.github_api import create_github_repository
+from utils.git_operations import clone_template_repository, push_to_github
 
 load_dotenv()
 
