@@ -43,19 +43,27 @@ def run_command(command: list[str], cwd: Optional[str] = None) -> tuple[bool, st
         return False, f"Command failed: {str(e)}"
 
 
-async def clone_template_repository(project_name: str, temp_dir: str, template_repo: str) -> tuple[bool, str]:
+async def clone_template_to_base_directory(project_name: str, base_dir: str, template_repo: str) -> tuple[bool, str]:
     """
-    Clone the template repository to a temporary directory.
+    Clone the template repository directly to the base directory and remove .git folder.
     
     Args:
         project_name: Name of the project
-        temp_dir: Temporary directory path
+        base_dir: Base directory path (usually ".")
         template_repo: URL of the template repository
         
     Returns:
-        Tuple of (success, message)
+        Tuple of (success, project_path_or_error)
     """
-    project_path = os.path.join(temp_dir, project_name)
+    project_path = os.path.join(base_dir, project_name)
+    
+    # Remove existing directory if it exists
+    if os.path.exists(project_path):
+        try:
+            shutil.rmtree(project_path)
+            logging.info(f"Removed existing directory: {project_path}")
+        except Exception as e:
+            return False, f"Failed to remove existing directory: {str(e)}"
     
     # Clone the repository
     success, output = run_command([
@@ -74,40 +82,7 @@ async def clone_template_repository(project_name: str, temp_dir: str, template_r
         except Exception as e:
             return False, f"Failed to remove .git folder: {str(e)}"
     
-    return True, project_path
-
-
-async def clone_existing_repository(repo_url: str, local_path: str, project_name: str) -> tuple[bool, str]:
-    """
-    Clone an existing repository to a local directory (preserves .git folder).
-    
-    Args:
-        repo_url: URL of the repository to clone
-        local_path: Local directory path where to clone
-        project_name: Name of the project
-        
-    Returns:
-        Tuple of (success, message_or_project_path)
-    """
-    project_path = os.path.join(local_path, project_name)
-    
-    # Remove existing directory if it exists
-    if os.path.exists(project_path):
-        try:
-            shutil.rmtree(project_path)
-            logging.info(f"Removed existing directory: {project_path}")
-        except Exception as e:
-            return False, f"Failed to remove existing directory: {str(e)}"
-    
-    # Clone the repository
-    success, output = run_command([
-        "git", "clone", repo_url, project_path
-    ])
-    
-    if not success:
-        return False, f"Failed to clone repository: {output}"
-    
-    logging.info(f"Successfully cloned repository to: {project_path}")
+    logging.info(f"Successfully cloned template to base directory: {project_path}")
     return True, project_path
 
 

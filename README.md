@@ -8,12 +8,11 @@ This MCP server provides comprehensive tools for AI agents to manage website pro
 
 ### `repo_setup` Tool
 Automates the process of creating a new website project by:
-1. Cloning a React Vite template repository
+1. **Cloning a React Vite template repository directly to the base directory**
 2. Removing the .git folder from the template
 3. Creating a new GitHub repository
 4. Pushing the code to the new repository
-5. **Cloning the repository to the base directory for local development**
-6. Optionally deploying to AWS Amplify (planned feature)
+5. Optionally deploying to AWS Amplify (planned feature)
 
 ### `create_file` Tool
 Creates new files with AI-generated content:
@@ -21,7 +20,7 @@ Creates new files with AI-generated content:
 2. Automatically creates directories if they don't exist
 3. Handles various file types and content
 
-### `commit_changes` Tool
+### `push_changes` Tool
 Manages git operations for project updates:
 1. Checks for changes in the project
 2. Stages all changes automatically
@@ -145,7 +144,7 @@ Create a new file in the project with AI-generated content.
 **Returns:**
 A status message indicating success or failure of file creation.
 
-#### `commit_changes`
+#### `push_changes`
 
 Commit and push changes made to the project.
 
@@ -156,7 +155,7 @@ Commit and push changes made to the project.
 **Example:**
 ```json
 {
-  "tool": "commit_changes",
+  "tool": "push_changes",
   "arguments": {
     "commit_message": "Add new HelloWorld component",
     "project_name": "my-awesome-website"
@@ -287,9 +286,9 @@ The server follows the FastMCP pattern and includes:
 ### Key Components
 
 #### Main Tools
-- **`repo_setup()`**: Orchestrates repository creation and local cloning
+- **`repo_setup()`**: Orchestrates repository creation with optimized workflow
 - **`create_file()`**: Handles AI-driven file creation
-- **`commit_changes()`**: Manages git commit and push operations
+- **`push_changes()`**: Manages git commit and push operations
 - **`read_file_tool()`**: Reads file contents with metadata
 - **`list_files_tool()`**: Lists directory contents with clear formatting
 - **`update_file_tool()`**: Updates existing file contents
@@ -298,7 +297,7 @@ The server follows the FastMCP pattern and includes:
 - **`make_github_request()`**: Handles GitHub API communication
 - **`create_github_repository()`**: Creates new GitHub repositories
 - **`run_command()`**: Executes shell commands safely
-- **`clone_template_repository()`**: Clones and prepares templates
+- **`clone_template_to_base_directory()`**: Optimized template cloning to base directory
 - **`clone_existing_repository()`**: Clones repositories preserving git history
 - **`push_to_github()`**: Initializes git and pushes code
 - **`create_file_in_project()`**: Creates files with directory handling
@@ -311,15 +310,20 @@ The server follows the FastMCP pattern and includes:
 
 ### Complete Workflow Process
 
-#### Repository Setup (`repo_setup`)
+#### Repository Setup (`repo_setup`) - Optimized Workflow
 1. **Validation**: Check for GitHub token and project name
-2. **Clone Template**: Clone the React Vite template to a temporary directory
+2. **Clone Template**: Clone the React Vite template directly to the base directory
 3. **Clean Template**: Remove .git folder from cloned template
 4. **Create Repository**: Create new GitHub repository via API
 5. **Initialize Git**: Set up git repository in project directory
 6. **Push Code**: Push the code to the new GitHub repository
-7. **Local Clone**: Clone the repository to the base directory for development
-8. **Return Results**: Provide success message with repository details and local path
+7. **Return Results**: Provide success message with repository details and local path
+
+**Optimization Benefits:**
+- Eliminates redundant cloning step
+- Reduces temporary file usage
+- Faster setup process
+- Direct local development readiness
 
 #### File Creation (`create_file`)
 1. **Validation**: Check file name and path parameters
@@ -327,7 +331,7 @@ The server follows the FastMCP pattern and includes:
 3. **File Writing**: Write content to the specified file
 4. **Confirmation**: Return success status and file details
 
-#### Change Management (`commit_changes`)
+#### Change Management (`push_changes`)
 1. **Project Location**: Construct project path from project name (`./{project_name}`)
 2. **Directory Validation**: Verify the project directory exists
 3. **Repository Check**: Verify the directory is a git repository
@@ -346,11 +350,12 @@ The server follows the FastMCP pattern and includes:
 
 ### Local Development Integration
 
-The `repo_setup` tool automatically clones repositories to the base directory, enabling immediate local development:
+The `repo_setup` tool uses an optimized workflow for immediate local development:
 
-- **Base Directory Cloning**: Projects are cloned directly to the current working directory
-- **Git Integration**: Full git history is preserved for version control
-- **Immediate Development**: No additional setup required after repository creation
+- **Direct Base Directory Setup**: Template is cloned directly to the current working directory
+- **Optimized Workflow**: Eliminates redundant cloning steps for faster setup
+- **Git Integration**: Full git history is established and connected to GitHub
+- **Immediate Development**: Project is ready for development immediately after setup
 - **Gitignore Management**: Cloned repositories are automatically excluded from version control
 
 ### Gitignore Configuration

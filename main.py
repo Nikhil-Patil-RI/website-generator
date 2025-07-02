@@ -7,11 +7,10 @@ from dotenv import load_dotenv
 # Import helper modules
 from utils.github_api import create_github_repository
 from utils.git_operations import (
-    clone_template_repository,
+    clone_template_to_base_directory,
     push_to_github,
     create_file_in_project,
-    commit_and_push_changes,
-    clone_existing_repository,
+    commit_and_push_changes
 )
 from utils.file_handling import (
     read_file,
@@ -46,12 +45,11 @@ async def repo_setup(
     Setup a new repository for a website project by cloning a template, creating a GitHub repo, and pushing the code.
 
     This tool performs the following steps:
-    1. Clone the React Vite template repository
+    1. Clone the React Vite template repository directly to base directory
     2. Remove the .git folder from the cloned repository
     3. Create a new repository on GitHub with the given project name
-    4. Push the cloned repository to the new GitHub repository
-    5. Clone the repository to the base directory for local development
-    6. Optionally deploy to AWS Amplify (if requested)
+    4. Push the code to the new GitHub repository
+    5. Optionally deploy to AWS Amplify (if requested)
 
     Args:
         project_name: Name of the project and GitHub repository
@@ -72,97 +70,67 @@ async def repo_setup(
     # Sanitize project name for GitHub
     project_name = project_name.strip().replace(" ", "-").lower()
 
-    # Create temporary directory
-    with tempfile.TemporaryDirectory() as temp_dir:
-        try:
-            logging.info(f"Starting repository setup for project: {project_name}")
+    try:
+        logging.info(f"Starting repository setup for project: {project_name}")
 
-            # Step 1: Clone template repository
-            logging.info("Step 1: Cloning template repository...")
-            success, project_path = await clone_template_repository(
-                project_name, temp_dir, TEMPLATE_REPO
-            )
-            if not success:
-                return f"Failed at Step 1: {project_path}"
+        # Step 1: Clone template repository directly to base directory
+        logging.info("Step 1: Cloning template repository to base directory...")
+        base_directory = "."
+        success, project_path = await clone_template_to_base_directory(
+            project_name, base_directory, TEMPLATE_REPO
+        )
+        if not success:
+            return f"Failed at Step 1: {project_path}"
 
-            # Step 2: Create GitHub repository
-            logging.info("Step 2: Creating GitHub repository...")
-            success, repo_url = await create_github_repository(
-                project_name, description
-            )
-            if not success:
-                return f"Failed at Step 2: {repo_url}"
+        # Step 2: Create GitHub repository
+        logging.info("Step 2: Creating GitHub repository...")
+        success, repo_url = await create_github_repository(project_name, description)
+        if not success:
+            return f"Failed at Step 2: {repo_url}"
 
-            # Step 3: Push to GitHub
-            logging.info("Step 3: Pushing code to GitHub...")
-            success, message = await push_to_github(
-                project_path, repo_url, project_name
-            )
-            if not success:
-                return f"Failed at Step 3: {message}"
+        # Step 3: Push to GitHub
+        logging.info("Step 3: Pushing code to GitHub...")
+        success, message = await push_to_github(project_path, repo_url, project_name)
+        if not success:
+            return f"Failed at Step 3: {message}"
 
-            # Prepare success message
-            result_message = f"""
-                Repository setup completed successfully!
+        # Prepare success message
+        result_message = f"""
+Repository setup completed successfully!
 
-                Project Name: {project_name}
-                Repository URL: {repo_url.replace('.git', '')}
-                Template Used: {TEMPLATE_REPO}
+Project Name: {project_name}
+Repository URL: {repo_url.replace('.git', '')}
+Template Used: {TEMPLATE_REPO}
+Local Directory: ./{project_name}
 
-                Steps Completed:
-                ✅ Cloned React Vite template repository
-                ✅ Removed .git folder from template
-                ✅ Created new GitHub repository
-                ✅ Pushed code to GitHub repository
+Steps Completed:
+✅ Cloned React Vite template repository to base directory
+✅ Removed .git folder from template
+✅ Created new GitHub repository
+✅ Pushed code to GitHub repository
 
-                Your website project is now ready! You can:
-                1. Clone the repository locally: git clone {repo_url}
-                2. Install dependencies: npm install
-                3. Start development server: npm run dev
-                4. Build for production: npm run build
-            """
+Your website project is now ready for local development!
 
-            # Step 4: Clone repository to base directory
-            logging.info("Step 4: Cloning repository to base directory...")
-            try:
-                # Clone the repository to the base directory (preserving .git folder)
-                base_directory = "."
-                success, output = await clone_existing_repository(
-                    repo_url, base_directory, project_name
-                )
+Local Development Setup:
+1. Navigate to project: cd {project_name}
+2. Install dependencies: npm install
+3. Start development server: npm run dev
+4. Build for production: npm run build
 
-                if success:
-                    result_message += (
-                        f"\n✅ Cloned repository to local directory: ./{project_name}"
-                    )
-                    result_message += f"\n\nLocal Development Setup:"
-                    result_message += f"\n1. Navigate to project: cd {project_name}"
-                    result_message += f"\n2. Install dependencies: npm install"
-                    result_message += f"\n3. Start development server: npm run dev"
-                else:
-                    result_message += (
-                        f"\n⚠️  Failed to clone repository locally: {output}"
-                    )
-                    result_message += (
-                        f"\n   You can manually clone it using: git clone {repo_url}"
-                    )
+Repository Management:
+- Use push_changes tool to commit and push your changes
+- Project is already set up with git and connected to GitHub
+        """
 
-            except Exception as e:
-                logging.error(f"Error during local clone: {str(e)}")
-                result_message += f"\n⚠️  Failed to clone repository locally: {str(e)}"
-                result_message += (
-                    f"\n   You can manually clone it using: git clone {repo_url}"
-                )
+        # Step 4: Optional Amplify deployment
+        if deploy_to_amplify:
+            result_message += "\n⚠️  AWS Amplify deployment is not yet implemented but can be added in future updates."
 
-            # Step 5: Optional Amplify deployment
-            if deploy_to_amplify:
-                result_message += "\n⚠️  AWS Amplify deployment is not yet implemented but can be added in future updates."
+        return result_message.strip()
 
-            return result_message.strip()
-
-        except Exception as e:
-            logging.error(f"Unexpected error during repository setup: {str(e)}")
-            return f"Repository setup failed due to unexpected error: {str(e)}"
+    except Exception as e:
+        logging.error(f"Unexpected error during repository setup: {str(e)}")
+        return f"Repository setup failed due to unexpected error: {str(e)}"
 
 
 @mcp.tool()
@@ -220,7 +188,7 @@ The file is ready for use in your project.
 
 
 @mcp.tool()
-async def commit_changes(commit_message: str, project_name: str) -> str:
+async def push_changes(commit_message: str, project_name: str) -> str:
     """
     Commit the changes made to the project and push them to the remote repository.
 
@@ -264,7 +232,7 @@ async def commit_changes(commit_message: str, project_name: str) -> str:
 
     try:
         logging.info(
-            f"Committing changes for project '{project_name}' with message: {commit_message}"
+            f"Pushing changes for project '{project_name}' with message: {commit_message}"
         )
 
         # Commit and push changes
@@ -301,11 +269,11 @@ Your changes are now live in the remote repository!
 """
             return result_message.strip()
         else:
-            return f"Failed to commit changes: {message}"
+            return f"Failed to push changes: {message}"
 
     except Exception as e:
-        logging.error(f"Unexpected error during commit operation: {str(e)}")
-        return f"Commit operation failed due to unexpected error: {str(e)}"
+        logging.error(f"Unexpected error during push operation: {str(e)}")
+        return f"Push operation failed due to unexpected error: {str(e)}"
 
 
 @mcp.tool()
