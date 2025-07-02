@@ -28,6 +28,27 @@ Manages git operations for project updates:
 3. Commits with provided message
 4. Pushes changes to remote repository
 
+### File Handling Tools
+Additional tools for file system operations:
+
+#### `read_file_tool`
+Reads the contents of any file in the project or system:
+1. Reads file contents with proper encoding
+2. Provides file statistics (lines, characters)
+3. Handles various file types and formats
+
+#### `list_files_tool`
+Lists all files and directories in a specified directory:
+1. Shows files and directories with clear prefixes
+2. Provides organized directory listings
+3. Handles empty directories gracefully
+
+#### `update_file_tool`
+Updates the contents of existing files:
+1. Overwrites entire file content with new content
+2. Validates file existence before updating
+3. Provides detailed operation feedback
+
 ## Features
 
 - **Complete Project Lifecycle**: From setup to deployment
@@ -146,6 +167,68 @@ Commit and push changes made to the project.
 **Returns:**
 A status message indicating success or failure of the commit and push operation.
 
+#### `read_file_tool`
+
+Read the contents of any file in the project or system.
+
+**Parameters:**
+- `file_path` (string, required): Path to the file to read (can be relative or absolute)
+
+**Example:**
+```json
+{
+  "tool": "read_file_tool",
+  "arguments": {
+    "file_path": "./my-awesome-website/src/App.tsx"
+  }
+}
+```
+
+**Returns:**
+File contents with metadata including character count and line count.
+
+#### `list_files_tool`
+
+List all files and directories in the specified directory.
+
+**Parameters:**
+- `directory_path` (string, required): Path to the directory to list (can be relative or absolute)
+
+**Example:**
+```json
+{
+  "tool": "list_files_tool",
+  "arguments": {
+    "directory_path": "./my-awesome-website/src"
+  }
+}
+```
+
+**Returns:**
+Directory listing with files marked as [FILE] and directories as [DIR].
+
+#### `update_file_tool`
+
+Update the contents of an existing file.
+
+**Parameters:**
+- `file_path` (string, required): Path to the file to update (can be relative or absolute)
+- `new_content` (string, required): New content to write to the file
+
+**Example:**
+```json
+{
+  "tool": "update_file_tool",
+  "arguments": {
+    "file_path": "./my-awesome-website/src/App.tsx",
+    "new_content": "import React from 'react';\nimport HelloWorld from './components/HelloWorld';\n\nfunction App() {\n  return <HelloWorld />;\n}\n\nexport default App;"
+  }
+}
+```
+
+**Returns:**
+A status message indicating success or failure of the file update operation.
+
 ## Configuration
 
 ### Environment Variables
@@ -161,7 +244,12 @@ The server uses `https://github.com/Jeetanshu18/react-vite` as the template repo
 ### Running Tests
 
 ```bash
-uv run python -m pytest test_main.py -v
+# Run all tests
+uv run python -m pytest tests/ -v
+
+# Run specific test files
+uv run python -m pytest tests/test_main.py -v
+uv run python -m pytest tests/test_file_handling.py -v
 ```
 
 ### Test Coverage
@@ -173,8 +261,9 @@ The test suite covers:
 - Repository cloning
 - GitHub repository creation
 - Git operations
-- Error handling
-- Edge cases
+- File handling operations (read, list, update)
+- Error handling and validation
+- Edge cases and empty parameters
 
 ### Adding New Features
 
@@ -190,7 +279,9 @@ The server follows the FastMCP pattern and includes:
 - **`main.py`**: Main MCP server implementation with all tools
 - **`utils/github_api.py`**: GitHub API integration utilities
 - **`utils/git_operations.py`**: Git operations and file management utilities
-- **`tests/test_main.py`**: Comprehensive test suite
+- **`utils/file_handling.py`**: File system operations and utilities
+- **`tests/test_main.py`**: Comprehensive test suite for main functionality
+- **`tests/test_file_handling.py`**: Test suite for file handling operations
 - **`pyproject.toml`**: Project configuration and dependencies
 
 ### Key Components
@@ -199,6 +290,9 @@ The server follows the FastMCP pattern and includes:
 - **`repo_setup()`**: Orchestrates repository creation and local cloning
 - **`create_file()`**: Handles AI-driven file creation
 - **`commit_changes()`**: Manages git commit and push operations
+- **`read_file_tool()`**: Reads file contents with metadata
+- **`list_files_tool()`**: Lists directory contents with clear formatting
+- **`update_file_tool()`**: Updates existing file contents
 
 #### Utility Functions
 - **`make_github_request()`**: Handles GitHub API communication
@@ -209,6 +303,9 @@ The server follows the FastMCP pattern and includes:
 - **`push_to_github()`**: Initializes git and pushes code
 - **`create_file_in_project()`**: Creates files with directory handling
 - **`commit_and_push_changes()`**: Handles git operations for commits
+- **`read_file()`**: Reads file contents with error handling
+- **`list_files()`**: Lists directory contents with type identification
+- **`update_file()`**: Updates existing files with validation
 
 ## Implementation Details
 

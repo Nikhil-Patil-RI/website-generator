@@ -13,6 +13,11 @@ from utils.git_operations import (
     commit_and_push_changes,
     clone_existing_repository,
 )
+from utils.file_handling import (
+    read_file,
+    list_files,
+    update_file,
+)
 
 load_dotenv()
 
@@ -301,6 +306,143 @@ Your changes are now live in the remote repository!
     except Exception as e:
         logging.error(f"Unexpected error during commit operation: {str(e)}")
         return f"Commit operation failed due to unexpected error: {str(e)}"
+
+
+@mcp.tool()
+async def read_file_tool(file_path: str) -> str:
+    """
+    Read the contents of a file.
+
+    This tool allows reading the contents of any file in the project or system.
+    Useful for examining configuration files, source code, or any text-based files.
+
+    Args:
+        file_path: Path to the file to read (can be relative or absolute)
+
+    Returns:
+        File contents or error message
+    """
+    if not file_path or not file_path.strip():
+        return "File path is required and cannot be empty."
+
+    try:
+        logging.info(f"Reading file: {file_path}")
+        success, content = await read_file(file_path)
+
+        if success:
+            return f"""
+File read successfully!
+
+File Path: {file_path}
+Content Length: {len(content)} characters
+Lines: {len(content.splitlines())}
+
+--- File Content ---
+{content}
+--- End of File ---
+"""
+        else:
+            return f"Failed to read file: {content}"
+
+    except Exception as e:
+        logging.error(f"Unexpected error reading file: {str(e)}")
+        return f"File read failed due to unexpected error: {str(e)}"
+
+
+@mcp.tool()
+async def list_files_tool(directory_path: str) -> str:
+    """
+    List all files and directories in the specified directory.
+
+    This tool provides a directory listing showing files and subdirectories.
+    Files are marked with [FILE] and directories with [DIR] prefixes.
+
+    Args:
+        directory_path: Path to the directory to list (can be relative or absolute)
+
+    Returns:
+        Directory listing or error message
+    """
+    if not directory_path or not directory_path.strip():
+        return "Directory path is required and cannot be empty."
+
+    try:
+        logging.info(f"Listing directory: {directory_path}")
+        success, items = await list_files(directory_path)
+
+        if success:
+            if not items:
+                return f"""
+Directory listing completed!
+
+Directory Path: {directory_path}
+Status: Directory is empty
+
+No files or subdirectories found.
+"""
+            else:
+                items_str = "\n".join(items)
+                return f"""
+Directory listing completed!
+
+Directory Path: {directory_path}
+Total Items: {len(items)}
+
+--- Directory Contents ---
+{items_str}
+--- End of Listing ---
+"""
+        else:
+            return f"Failed to list directory: {items}"
+
+    except Exception as e:
+        logging.error(f"Unexpected error listing directory: {str(e)}")
+        return f"Directory listing failed due to unexpected error: {str(e)}"
+
+
+@mcp.tool()
+async def update_file_tool(file_path: str, new_content: str) -> str:
+    """
+    Update the contents of an existing file.
+
+    This tool overwrites the entire content of an existing file with new content.
+    The file must already exist - use create_file to create new files.
+
+    Args:
+        file_path: Path to the file to update (can be relative or absolute)
+        new_content: New content to write to the file
+
+    Returns:
+        Success message or error message
+    """
+    if not file_path or not file_path.strip():
+        return "File path is required and cannot be empty."
+
+    if new_content is None:
+        new_content = ""  # Allow empty content
+
+    try:
+        logging.info(f"Updating file: {file_path}")
+        success, message = await update_file(file_path, new_content)
+
+        if success:
+            return f"""
+File updated successfully!
+
+File Path: {file_path}
+Content Length: {len(new_content)} characters
+Lines: {len(new_content.splitlines())}
+
+✅ File '{file_path}' has been updated with new content.
+
+The file is ready for use in your project.
+"""
+        else:
+            return f"Failed to update file: {message}"
+
+    except Exception as e:
+        logging.error(f"Unexpected error updating file: {str(e)}")
+        return f"File update failed due to unexpected error: {str(e)}"
 
 
 if __name__ == "__main__":
