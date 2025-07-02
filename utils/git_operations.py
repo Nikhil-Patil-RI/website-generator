@@ -108,13 +108,10 @@ async def push_to_github(
     Returns:
         Tuple of (success, message)
     """
-    # Get GitHub token for authentication
     github_token = os.getenv("GITHUB_TOKEN")
     if not github_token:
         return False, "GitHub token is required for pushing to repository"
 
-    # Convert HTTPS URL to include token for authentication
-    # Format: https://token@github.com/user/repo.git
     if repo_url.startswith("https://github.com/"):
         authenticated_url = repo_url.replace(
             "https://github.com/", f"https://{github_token}@github.com/"
@@ -122,36 +119,40 @@ async def push_to_github(
     else:
         return False, f"Unsupported repository URL format: {repo_url}"
 
-    # Initialize git repository
+    # Step 1: Initialize Git repo
     success, output = run_command(["git", "init"], cwd=project_path)
     if not success:
         return False, f"Failed to initialize git repository: {output}"
 
-    # Add all files
+    # Step 2: Set Git user config (local only)
+    run_command(["git", "config", "user.name", "Web Developer"], cwd=project_path)
+    run_command(["git", "config", "user.email", "web@developer.com"], cwd=project_path)
+
+    # Step 3: Add files
     success, output = run_command(["git", "add", "."], cwd=project_path)
     if not success:
         return False, f"Failed to add files to git: {output}"
 
-    # Commit files
+    # Step 4: Commit
     success, output = run_command(
         ["git", "commit", "-m", f"Initial commit for {project_name}"], cwd=project_path
     )
     if not success:
         return False, f"Failed to commit files: {output}"
 
-    # Add remote origin with authenticated URL
+    # Step 5: Add remote origin
     success, output = run_command(
         ["git", "remote", "add", "origin", authenticated_url], cwd=project_path
     )
     if not success:
         return False, f"Failed to add remote origin: {output}"
 
-    # Set default branch to main
+    # Step 6: Set branch to main
     success, output = run_command(["git", "branch", "-M", "main"], cwd=project_path)
     if not success:
         return False, f"Failed to set main branch: {output}"
 
-    # Push to GitHub using authenticated URL
+    # Step 7: Push to GitHub
     success, output = run_command(
         ["git", "push", "-u", "origin", "main"], cwd=project_path
     )
