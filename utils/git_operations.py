@@ -77,6 +77,40 @@ async def clone_template_repository(project_name: str, temp_dir: str, template_r
     return True, project_path
 
 
+async def clone_existing_repository(repo_url: str, local_path: str, project_name: str) -> tuple[bool, str]:
+    """
+    Clone an existing repository to a local directory (preserves .git folder).
+    
+    Args:
+        repo_url: URL of the repository to clone
+        local_path: Local directory path where to clone
+        project_name: Name of the project
+        
+    Returns:
+        Tuple of (success, message_or_project_path)
+    """
+    project_path = os.path.join(local_path, project_name)
+    
+    # Remove existing directory if it exists
+    if os.path.exists(project_path):
+        try:
+            shutil.rmtree(project_path)
+            logging.info(f"Removed existing directory: {project_path}")
+        except Exception as e:
+            return False, f"Failed to remove existing directory: {str(e)}"
+    
+    # Clone the repository
+    success, output = run_command([
+        "git", "clone", repo_url, project_path
+    ])
+    
+    if not success:
+        return False, f"Failed to clone repository: {output}"
+    
+    logging.info(f"Successfully cloned repository to: {project_path}")
+    return True, project_path
+
+
 async def push_to_github(project_path: str, repo_url: str, project_name: str) -> tuple[bool, str]:
     """
     Initialize git and push the project to GitHub.

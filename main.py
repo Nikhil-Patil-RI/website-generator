@@ -6,7 +6,13 @@ from dotenv import load_dotenv
 
 # Import helper modules
 from utils.github_api import create_github_repository
-from utils.git_operations import clone_template_repository, push_to_github, create_file_in_project, commit_and_push_changes
+from utils.git_operations import (
+    clone_template_repository,
+    push_to_github,
+    create_file_in_project,
+    commit_and_push_changes,
+    clone_existing_repository,
+)
 
 load_dotenv()
 
@@ -27,7 +33,10 @@ if not GITHUB_TOKEN:
 
 @mcp.tool()
 async def repo_setup(
-    project_name: str, description: str = "", deploy_to_amplify: bool = False
+    project_name: str,
+    description: str = "",
+    deploy_to_amplify: bool = False,
+    local_clone_path: str = "",
 ) -> str:
     """
     Setup a new repository for a website project by cloning a template, creating a GitHub repo, and pushing the code.
@@ -37,12 +46,14 @@ async def repo_setup(
     2. Remove the .git folder from the cloned repository
     3. Create a new repository on GitHub with the given project name
     4. Push the cloned repository to the new GitHub repository
-    5. Optionally deploy to AWS Amplify (if requested)
+    5. Optionally clone the repository to a local directory for further development
+    6. Optionally deploy to AWS Amplify (if requested)
 
     Args:
         project_name: Name of the project and GitHub repository
         description: Optional description for the GitHub repository
         deploy_to_amplify: Whether to deploy to AWS Amplify (optional, not implemented yet)
+        local_clone_path: Optional local directory path to clone the repository for development (e.g., "./projects")
 
     Returns:
         Status message with repository URL and deployment information
@@ -89,26 +100,64 @@ async def repo_setup(
 
             # Prepare success message
             result_message = f"""
-Repository setup completed successfully!
+                Repository setup completed successfully!
 
-Project Name: {project_name}
-Repository URL: {repo_url.replace('.git', '')}
-Template Used: {TEMPLATE_REPO}
+                Project Name: {project_name}
+                Repository URL: {repo_url.replace('.git', '')}
+                Template Used: {TEMPLATE_REPO}
 
-Steps Completed:
-✅ Cloned React Vite template repository
-✅ Removed .git folder from template
-✅ Created new GitHub repository
-✅ Pushed code to GitHub repository
+                Steps Completed:
+                ✅ Cloned React Vite template repository
+                ✅ Removed .git folder from template
+                ✅ Created new GitHub repository
+                ✅ Pushed code to GitHub repository
 
-Your website project is now ready! You can:
-1. Clone the repository locally: git clone {repo_url}
-2. Install dependencies: npm install
-3. Start development server: npm run dev
-4. Build for production: npm run build
-"""
+                Your website project is now ready! You can:
+                1. Clone the repository locally: git clone {repo_url}
+                2. Install dependencies: npm install
+                3. Start development server: npm run dev
+                4. Build for production: npm run build
+            """
 
-            # Step 4: Optional Amplify deployment
+            # Step 4: Optional local clone
+            if local_clone_path and local_clone_path.strip():
+                logging.info("Step 4: Cloning repository to local directory...")
+                try:
+                    # Ensure the local clone path exists
+                    if not os.path.exists(local_clone_path):
+                        os.makedirs(local_clone_path, exist_ok=True)
+                        logging.info(f"Created local directory: {local_clone_path}")
+
+                    # Clone the repository locally (preserving .git folder)
+                    local_project_path = os.path.join(local_clone_path, project_name)
+                    success, output = await clone_existing_repository(
+                        repo_url, local_clone_path, project_name
+                    )
+
+                    if success:
+                        result_message += f"\n✅ Cloned repository to local directory: {local_project_path}"
+                        result_message += f"\n\nLocal Development Setup:"
+                        result_message += (
+                            f"\n1. Navigate to project: cd {local_project_path}"
+                        )
+                        result_message += f"\n2. Install dependencies: npm install"
+                        result_message += f"\n3. Start development server: npm run dev"
+                    else:
+                        result_message += (
+                            f"\n⚠️  Failed to clone repository locally: {output}"
+                        )
+                        result_message += f"\n   You can manually clone it using: git clone {repo_url}"
+
+                except Exception as e:
+                    logging.error(f"Error during local clone: {str(e)}")
+                    result_message += (
+                        f"\n⚠️  Failed to clone repository locally: {str(e)}"
+                    )
+                    result_message += (
+                        f"\n   You can manually clone it using: git clone {repo_url}"
+                    )
+
+            # Step 5: Optional Amplify deployment
             if deploy_to_amplify:
                 result_message += "\n⚠️  AWS Amplify deployment is not yet implemented but can be added in future updates."
 
@@ -120,9 +169,7 @@ Your website project is now ready! You can:
 
 
 @mcp.tool()
-async def create_file(
-    file_name: str, file_path: str, content: str
-) -> str:
+async def create_file(file_name: str, file_path: str, content: str) -> str:
     """
     Create a new file in the project with content generated by the AI Agent.
 
@@ -141,19 +188,19 @@ async def create_file(
     """
     if not file_name or not file_name.strip():
         return "File name is required and cannot be empty."
-    
+
     if not file_path or not file_path.strip():
         return "File path is required and cannot be empty."
-    
+
     if content is None:
         content = ""  # Allow empty files
-    
+
     try:
         logging.info(f"Creating file: {file_name} at path: {file_path}")
-        
+
         # Create the file
         success, message = await create_file_in_project(file_path, file_name, content)
-        
+
         if success:
             result_message = f"""
 File created successfully!
@@ -169,16 +216,14 @@ The file is ready for use in your project.
             return result_message.strip()
         else:
             return f"Failed to create file: {message}"
-            
+
     except Exception as e:
         logging.error(f"Unexpected error during file creation: {str(e)}")
         return f"File creation failed due to unexpected error: {str(e)}"
 
 
 @mcp.tool()
-async def commit_changes(
-    commit_message: str, project_path: str = "."
-) -> str:
+async def commit_changes(commit_message: str, project_path: str = ".") -> str:
     """
     Commit the changes made to the project and push them to the remote repository.
 
@@ -199,16 +244,16 @@ async def commit_changes(
     """
     if not commit_message or not commit_message.strip():
         return "Commit message is required and cannot be empty."
-    
+
     # Sanitize commit message
     commit_message = commit_message.strip()
-    
+
     try:
         logging.info(f"Committing changes with message: {commit_message}")
-        
+
         # Commit and push changes
         success, message = await commit_and_push_changes(project_path, commit_message)
-        
+
         if success:
             if "No changes to commit" in message:
                 result_message = f"""
@@ -237,7 +282,7 @@ Your changes are now live in the remote repository!
             return result_message.strip()
         else:
             return f"Failed to commit changes: {message}"
-            
+
     except Exception as e:
         logging.error(f"Unexpected error during commit operation: {str(e)}")
         return f"Commit operation failed due to unexpected error: {str(e)}"
