@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from utils.github_api import create_github_repository
 from utils.git_operations import (
     clone_template_to_base_directory,
+    generate_commit_message,
     push_to_github,
     create_file_in_project,
     commit_and_push_changes
