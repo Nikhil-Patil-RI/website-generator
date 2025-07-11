@@ -14,7 +14,7 @@ from utils.git_operations import (
 )
 from utils.file_handling import (
     read_file,
-    list_files,
+    list_files as list_files_in_directory,
     update_file,
 )
 
@@ -332,7 +332,7 @@ async def list_files(directory_path: str) -> str:
 
     try:
         logging.info(f"Listing directory: {directory_path}")
-        success, items = await list_files(directory_path)
+        success, items = await list_files_in_directory(directory_path)
 
         if success:
             if not items:
