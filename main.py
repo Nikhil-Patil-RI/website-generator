@@ -13,9 +13,9 @@ from utils.git_operations import (
     commit_and_push_changes
 )
 from utils.file_handling import (
-    read_file,
+    read_file as read_file_at_path,
     list_files as list_files_in_directory,
-    update_file,
+    update_file as update_file_at_path,
 )
 
 load_dotenv()
@@ -291,7 +291,7 @@ async def read_file(file_path: str) -> str:
 
     try:
         logging.info(f"Reading file: {file_path}")
-        success, content = await read_file(file_path)
+        success, content = await read_file_at_path(file_path)
 
         if success:
             return f"""
@@ -387,7 +387,7 @@ async def update_file(file_path: str, new_content: str) -> str:
 
     try:
         logging.info(f"Updating file: {file_path}")
-        success, message = await update_file(file_path, new_content)
+        success, message = await update_file_at_path(file_path, new_content)
 
         if success:
             return f"""
